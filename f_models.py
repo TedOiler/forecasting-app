@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
-import fun_preprocessing as fp
+import f_prep as fp
+
 
 def manual_arima(train_df, p, d, q):
     model = ARIMA(train_df, order=(p, d, q))
@@ -22,6 +23,12 @@ def set_hparams(train, val, max_search=5, f_period=4):
     minimum_results = results.iloc[arg_min]
 
     return minimum_results['p'], minimum_results['d'], minimum_results['q']
+
+
+def last_fit_2(train, val, *args):
+    refit_data = pd.concat([train, val], axis=0)
+    last_fit = ARIMA(refit_data, order=(args[0][0], args[0][1], args[0][2]))
+    return last_fit.fit()
 
 
 def last_fit(train, val, p, d, q):
