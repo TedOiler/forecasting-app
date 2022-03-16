@@ -1,26 +1,18 @@
-# from class_approach.helper_functions import *
-import warnings
 import scipy.stats as stats
 import datetime
-# import seaborn as sns
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
-from arch import arch_model
-import math
-
-from tqdm import tqdm
 from stqdm import stqdm
 import warnings
 
 warnings.filterwarnings("ignore")
 plt.style.use('fivethirtyeight')
-from statsmodels.graphics import tsaplots as ts
 
-# sns.set_theme()
+import warnings
 warnings.filterwarnings("ignore")
 
 
@@ -281,6 +273,16 @@ def group_data(data, grouping, log_bool=True):
         group_df = group_df['total_amount']
 
     return group_df
+
+
+def clean_data(data):
+    data_frame = data[['Document Date', 'Total amount']]
+    # fix column naming
+    data_frame.columns = data_frame.columns.str.replace(' ', '_')
+    data_frame.columns = [x.lower() for x in data_frame.columns]
+    data_frame['document_date'] = pd.to_datetime(data_frame['document_date'], format="%Y-%m-%d")
+
+    return data_frame
 
 
 def train_val_test_split(data, f_period):

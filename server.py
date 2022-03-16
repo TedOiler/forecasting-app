@@ -1,12 +1,7 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import f_prep as fp
-import helper_functions as hf
 import model as m
 import plotly.express as px
-from matplotlib import pyplot as plt
-import plotly.graph_objects as go
 
 
 @st.cache
@@ -33,7 +28,7 @@ with input_expander:
         except:
             df = pd.read_csv(uploaded_file, header=[0])
         try:
-            data = fp.clean_data(data=df)
+            data = m.clean_data(data=df)
             data['document_date'].dt.strftime("%Y-%m-%d")
         except:
             data = None
@@ -57,7 +52,7 @@ params_expander = parameter_form.expander("Set Model Parameters")
 with params_expander:
     col1, col2 = params_expander.columns(2)
     grouping = col1.selectbox("Cohort", ["W-SUN", "W-MON", "D", "M"])
-    model_metric = col2.selectbox("Loss", ["rmse", "mae", "mape", "aic", "bic"])
+    model_metric = col2.selectbox("Loss", ["rmse", "mae", "aic", "bic"])
     forecast_period = params_expander.number_input('Forecast Periods', min_value=1, max_value=90, value=4, step=1)
     test_period = params_expander.number_input("Test Periods", 1, 200, value=15, step=1)
     conf = params_expander.slider("Confidence Int", 0., 1., value=0.8, step=0.05)
@@ -70,6 +65,7 @@ if submit_params_btn:
     col2.success("Success")
 
 # Documentation --------------------------------------------
+st.sidebar.markdown("---")
 st.sidebar.header("Documentation")
 document_expander = st.sidebar.expander("Search Documentation")
 with document_expander:
@@ -80,8 +76,10 @@ with document_expander:
 
 #  Main-Page --------------------------------------------
 st.title("Cashflow Prediction")
-grouped_data = hf.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
-df_train, df_test = hf.train_val_test_split(data=grouped_data, f_period=test_period)
+# TODO
+grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
+# TODO
+df_train, df_test = m.train_val_test_split(data=grouped_data, f_period=test_period)
 train_prc_length = df_train.shape[0] / grouped_data.shape[0]
 data_expander = st.expander(f"3. Train-Test: {round(train_prc_length * 100)}% - {round((1 - train_prc_length) * 100)}%")
 with data_expander:
@@ -106,13 +104,13 @@ model_expander = models_form.expander("4. Models")
 with model_expander:
     col1, col2 = model_expander.columns(2)
     algo_1 = col1.selectbox("Model #1", ['MA', None], 0)
-    strength_1 = col1.slider("Model #1 Depth", 1, 20, value=10, step=1)
+    strength_1 = col1.slider("Model #1 Depth", 1, test_period, value=10, step=1)
     algo_2 = col2.selectbox("Model #2", ['AR', None], 0)
-    strength_2 = col2.slider("Model #2 Depth", 1, 20, value=10, step=1)
+    strength_2 = col2.slider("Model #2 Depth", 1, test_period, value=10, step=1)
     col1.markdown('---')
     col2.markdown('---')
     algo_3 = col1.selectbox("Model #3", ['ARIMA', None], 0)
-    strength_3 = col1.slider("Model #3 Depth", 1, 20, value=10, step=1)
+    strength_3 = col1.slider("Model #3 Depth", 1, test_period, value=10, step=1)
     algo_4 = col2.selectbox("Model #4", ['SARIMA', None], 0)
     strength_4 = col2.slider("Model #4 Depth", 1, 8, value=4, step=1)
     col1, col2, col3, col4 = models_form.columns(4)
@@ -173,6 +171,7 @@ with model_expander:
         col4.success("Success")
 
 residuals_expander = st.expander("5. Model Evaluation")
+# TODO
 if st.session_state.model_1 is not None:
     col1, col2 = residuals_expander.columns(2)
     col1.write(f"{algo_1} - Residuals")
@@ -189,7 +188,6 @@ if st.session_state.model_1 is not None:
 fitted_values_expander = st.expander("6. Visual")
 if st.session_state.model_1 is not None:
     col1, col2 = fitted_values_expander.columns(2)
-    fitted_values_expander.write("Coming soon")
     true = pd.concat([df_train, df_test], axis=0)
     st.session_state.all_data_m1 = pd.concat([true, st.session_state.model_1.prediction_past], axis=1)
     st.session_state.all_data_m2 = pd.concat([true, st.session_state.model_2.prediction_past], axis=1)
@@ -198,28 +196,28 @@ if st.session_state.model_1 is not None:
 
     fig1 = px.line(st.session_state.all_data_m1, template="seaborn")
     fig1.update_layout(
-        title="MA Prediction",
+        title=f"MA Prediction: {st.session_state.model_1.best_hparams}",
         xaxis_title="Date",
         yaxis_title="True Value",
         legend_title="Legend",
         showlegend=True)
     fig2 = px.line(st.session_state.all_data_m2, template="seaborn")
     fig2.update_layout(
-        title="AR Prediction",
+        title=f"AR Prediction: {st.session_state.model_2.best_hparams}",
         xaxis_title="Date",
         yaxis_title="True Value",
         legend_title="Legend",
         showlegend=True)
     fig3 = px.line(st.session_state.all_data_m3, template="seaborn")
     fig3.update_layout(
-        title="ARIMA Prediction",
+        title=f"ARIMA Prediction: {st.session_state.model_3.best_hparams}",
         xaxis_title="Date",
         yaxis_title="True Value",
         legend_title="Legend",
         showlegend=True)
     fig4 = px.line(st.session_state.all_data_m4, template="seaborn")
     fig4.update_layout(
-        title="SARIMA Prediction",
+        title=f"SARIMA Prediction: {st.session_state.model_4.best_hparams}",
         xaxis_title="Date",
         yaxis_title="True Value",
         legend_title="Legend",
@@ -268,3 +266,15 @@ if st.session_state.all_data is not None:
                                     data=convert_df(st.session_state.all_data),
                                     file_name='forecast.csv',
                                     mime='text/csv')
+st.markdown("---")
+model_dicts = st.expander("Data Dump")
+if st.session_state.all_data is not None:
+    col1, col2, col3, col4 = model_dicts.columns(4)
+    col1.write("MA Model Data")
+    col1.write(st.session_state.model_1.__dict__)
+    col2.write("AR Model Data")
+    col2.write(st.session_state.model_2.__dict__)
+    col3.write("ARIMA Model Data")
+    col3.write(st.session_state.model_3.__dict__)
+    col4.write("SARIMA Model Data")
+    col4.write(st.session_state.model_4.__dict__)
