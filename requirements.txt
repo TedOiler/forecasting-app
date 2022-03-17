@@ -6,3 +6,4 @@ streamlit==1.2.0
 plotly==5.4.0
 scipy==1.7.1
 statsmodels==0.12.2
+stqdm==0.0.4
