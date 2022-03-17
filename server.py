@@ -6,7 +6,6 @@ import plotly.express as px
 
 @st.cache
 def convert_df(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
     return df.to_csv().encode('utf-8')
 
 
@@ -28,7 +27,6 @@ with input_expander:
             df = pd.read_csv(uploaded_file, header=[0])
         try:
             data = m.clean_data(data=df)
-            data['document_date'].dt.strftime("%Y-%m-%d")
 
         except:
             data = None
@@ -69,28 +67,32 @@ st.title("Cashflow Forecasting")
 if data is not None:
     st.session_state.grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
     df_train, df_test = m.train_val_test_split(data=st.session_state.grouped_data, f_period=test_period)
+    df_train_styler = pd.DataFrame(df_train.round(2)).style.format({"document_date": lambda t: t.strftime("%Y-%m-%d")})
+    df_test_styler = pd.DataFrame(df_test.round(2)).style.format({"document_date": lambda t: t.strftime("%Y-%m-%d")})
 else:
     df_train = pd.DataFrame()
     df_test = pd.DataFrame()
+    df_train_styler = pd.DataFrame()
+    df_test_styler = pd.DataFrame()
     st.session_state.grouped_data = pd.DataFrame([1])
 train_prc_length = df_train.shape[0] / st.session_state.grouped_data.shape[0]
 data_expander = st.expander(f"Train-Test: {round(train_prc_length * 100)}% - {round((1 - train_prc_length) * 100)}%")
 with data_expander:
-    col1, col2, col3, col4 = data_expander.columns(4)
+    col1, col2, col3 = data_expander.columns(3)
+
     col1.write(f"Train length: {df_train.shape[0]}")
-    col1.dataframe(df_train)
+    col1.dataframe(df_train_styler)
     col1.download_button(label='Export Train as CSV',
                          data=convert_df(df_train),
                          file_name='train_data.csv',
                          mime='text/csv')
-    col2.write(f"Test length: {df_test.shape[0]}")
-    col2.dataframe(df_test)
-    col2.download_button(label='Export Test as CSV',
+    col3.write(f"Test length: {df_test.shape[0]}")
+    col3.dataframe(df_test_styler)
+    col3.download_button(label='Export Test as CSV',
                          data=convert_df(df_test),
                          file_name='test_data.csv',
                          mime='text/csv')
-    col3.empty()
-    col4.empty()
+    col2.empty()
 
 models_form = st.form(key="models")
 model_expander = models_form.expander("Models")
