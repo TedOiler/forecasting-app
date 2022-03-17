@@ -15,7 +15,7 @@ st.set_page_config(layout="wide", page_title='Forecaster', page_icon="📈")
 st.sidebar.title("Sidebar")
 
 # Input Form --------------------------------------------
-st.sidebar.header("1. Input")
+st.sidebar.title(" Input")
 input_form = st.sidebar.form(key="input")
 input_expander = input_form.expander("File Upload")
 # Input Data Upload Form
