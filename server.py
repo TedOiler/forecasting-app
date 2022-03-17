@@ -55,7 +55,7 @@ with params_expander:
     model_metric = col2.selectbox("Loss", ["rmse", "mae", "aic", "bic"])
     forecast_period = params_expander.number_input('Forecast Periods', min_value=1, max_value=90, value=4, step=1)
     test_period = params_expander.number_input("Test Periods", 1, 200, value=15, step=1)
-    conf = params_expander.slider("Confidence Int", 0., 1., value=0.8, step=0.05)
+    conf = 1 - params_expander.slider("Confidence Int", 0., 1., value=0.2, step=0.05)
     # log_bool = params_expander.checkbox("Log")
     log_bool = False
 
@@ -75,7 +75,7 @@ with document_expander:
     document_expander.markdown(documentation_link, unsafe_allow_html=True)
 
 #  Main-Page --------------------------------------------
-st.title("Cashflow Prediction")
+st.title("Cashflow Forecasting")
 # TODO
 grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
 # TODO
@@ -104,69 +104,41 @@ model_expander = models_form.expander("4. Models")
 with model_expander:
     col1, col2 = model_expander.columns(2)
     algo_1 = col1.selectbox("Model #1", ['MA', None], 0)
-    strength_1 = col1.slider("Model #1 Depth", 1, test_period, value=10, step=1)
+    strength_1 = col1.slider("Model #1 Depth", 1, test_period, value=int(test_period/1.2), step=1)
     algo_2 = col2.selectbox("Model #2", ['AR', None], 0)
-    strength_2 = col2.slider("Model #2 Depth", 1, test_period, value=10, step=1)
+    strength_2 = col2.slider("Model #2 Depth", 1, test_period, value=int(test_period/1.2), step=1)
     col1.markdown('---')
     col2.markdown('---')
     algo_3 = col1.selectbox("Model #3", ['ARIMA', None], 0)
-    strength_3 = col1.slider("Model #3 Depth", 1, test_period, value=10, step=1)
+    strength_3 = col1.slider("Model #3 Depth", 1, test_period, value=int(test_period/2), step=1)
     algo_4 = col2.selectbox("Model #4", ['SARIMA', None], 0)
     strength_4 = col2.slider("Model #4 Depth", 1, 8, value=4, step=1)
     col1, col2, col3, col4 = models_form.columns(4)
     train_models_btn = col1.form_submit_button("Train")
     if train_models_btn:
-        if "model_1" not in st.session_state:
-            st.session_state.model_1 = m.Model(algorithm=algo_1, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_1,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_1.fit()
-        else:
-            st.session_state.model_1 = m.Model(algorithm=algo_1, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_1,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_1.fit()
+        st.session_state.model_1 = m.Model(algorithm=algo_1, train_set=df_train, test_set=df_test,
+                                           grouping=grouping, depth=strength_1,
+                                           model_metric=model_metric, forecast_period=forecast_period,
+                                           log_bool=log_bool, conf=conf)
+        st.session_state.model_1.fit()
 
-        if "model_2" not in st.session_state:
-            st.session_state.model_2 = m.Model(algorithm=algo_2, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_2,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_2.fit()
-        else:
-            st.session_state.model_2 = m.Model(algorithm=algo_2, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_2,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_2.fit()
+        st.session_state.model_2 = m.Model(algorithm=algo_2, train_set=df_train, test_set=df_test,
+                                           grouping=grouping, depth=strength_2,
+                                           model_metric=model_metric, forecast_period=forecast_period,
+                                           log_bool=log_bool, conf=conf)
+        st.session_state.model_2.fit()
 
-        if "model_3" not in st.session_state:
-            st.session_state.model_3 = m.Model(algorithm=algo_3, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_3,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_3.fit()
-        else:
-            st.session_state.model_3 = m.Model(algorithm=algo_3, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_3,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_3.fit()
+        st.session_state.model_3 = m.Model(algorithm=algo_3, train_set=df_train, test_set=df_test,
+                                           grouping=grouping, depth=strength_3,
+                                           model_metric=model_metric, forecast_period=forecast_period,
+                                           log_bool=log_bool, conf=conf)
+        st.session_state.model_3.fit()
 
-        if "model_4" not in st.session_state:
-            st.session_state.model_4 = m.Model(algorithm=algo_4, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_4,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_4.fit()
-        else:
-            st.session_state.model_4 = m.Model(algorithm=algo_4, train_set=df_train, test_set=df_test,
-                                               grouping=grouping, depth=strength_4,
-                                               model_metric=model_metric, forecast_period=forecast_period,
-                                               log_bool=log_bool, conf=conf)
-            st.session_state.model_4.fit()
+        st.session_state.model_4 = m.Model(algorithm=algo_4, train_set=df_train, test_set=df_test,
+                                           grouping=grouping, depth=strength_4,
+                                           model_metric=model_metric, forecast_period=forecast_period,
+                                           log_bool=log_bool, conf=conf)
+        st.session_state.model_4.fit()
 
         col4.success("Success")
 
@@ -189,11 +161,11 @@ fitted_values_expander = st.expander("6. Visual")
 if st.session_state.model_1 is not None:
     col1, col2 = fitted_values_expander.columns(2)
     true = pd.concat([df_train, df_test], axis=0)
+
     st.session_state.all_data_m1 = pd.concat([true, st.session_state.model_1.prediction_past], axis=1)
     st.session_state.all_data_m2 = pd.concat([true, st.session_state.model_2.prediction_past], axis=1)
     st.session_state.all_data_m3 = pd.concat([true, st.session_state.model_3.prediction_past], axis=1)
     st.session_state.all_data_m4 = pd.concat([true, st.session_state.model_4.prediction_past], axis=1)
-
     fig1 = px.line(st.session_state.all_data_m1, template="seaborn")
     fig1.update_layout(
         title=f"MA Prediction: {st.session_state.model_1.best_hparams}",
@@ -243,19 +215,21 @@ model_dict = {'MA': st.session_state.model_1,
               'SARIMA': st.session_state.model_4}
 if pool_btn:
     models = [model_dict[selected_models[_]] for _ in range(len(selected_models))]
-    pool_pred, model_list = m.pool(*models, metric=weight)
+    pool_forecast, model_list, pool_predicted = m.pool(*models, metric=weight)
     true = pd.concat([df_train, df_test], axis=0)
-    st.session_state.all_data = pd.concat([true, st.session_state.model_3.prediction_past, pool_pred], axis=1)
+    st.session_state.all_data = pd.concat([true, pool_predicted, pool_forecast], axis=1)
+    # st.write(st.session_state.all_data)
     st.session_state.all_data.columns = ['true', 'prediction', 'forecast_lower', 'forecast_mean', 'forecast_upper']
     fig = px.line(st.session_state.all_data, template="seaborn")
     fig.update_layout(
-        title="Forecast",
+        title=f"Forecast \n {model_list}",
         xaxis_title="Date",
         yaxis_title="True Value",
         legend_title="Legend")
     pool_expander.plotly_chart(fig, use_container_width=True)
 
     col2.success("Success")
+
 else:
     all_data = None
 

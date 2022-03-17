@@ -13,6 +13,7 @@ warnings.filterwarnings("ignore")
 plt.style.use('fivethirtyeight')
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 
@@ -224,10 +225,12 @@ def fitted_values_forecast(input_model, conf=0.8):
 
 def pool(*args, metric='rmse'):
     models = [args[_] for _ in range(len(args))]
-    pred_mean = [models[_].prediction for _ in range(len(args))]
-    pred_lower = [models[_].conf_int.iloc[:, 0] for _ in range(len(args))]
-    pred_upper = [models[_].conf_int.iloc[:, 1] for _ in range(len(args))]
-
+    for_mean = [models[_].prediction for _ in range(len(args))]
+    for_lower = [models[_].conf_int.iloc[:, 0] for _ in range(len(args))]
+    for_upper = [models[_].conf_int.iloc[:, 1] for _ in range(len(args))]
+    pred_history = np.array(
+        pd.DataFrame([pd.Series(np.array(models[_].prediction_past)) for _ in range(len(models))]).T)
+    # The above is not very intelligently written but it works...
     scores = [models[_].scores[metric] for _ in range(len(args))]
     if metric == 'rmse':
         deltas = [1 / scores[_] for _ in range(len(args))]
@@ -237,24 +240,27 @@ def pool(*args, metric='rmse'):
     total = sum(deltas)
     weights = [deltas[_] / total for _ in range(len(args))]
 
-    pred_mean = np.array(pred_mean).reshape((-1, len(args)))
-    pred_lower = np.array(pred_lower).reshape((-1, len(args)))
-    pred_upper = np.array(pred_upper).reshape((-1, len(args)))
+    for_mean = np.array(for_mean).reshape((-1, len(args)))
+    for_lower = np.array(for_lower).reshape((-1, len(args)))
+    for_upper = np.array(for_upper).reshape((-1, len(args)))
     weights = np.array(weights).reshape((-1, 1))
     model_w = sorted(list(zip([models[_].algorithm for _ in range(len(args))],
-                              [round(weights[_][0], 4) for _ in range(len(args))])),
+                              [round(weights[_][0] * 100) for _ in range(len(args))])),
                      key=lambda x: x[1], reverse=True)
 
-    w_pred_lower = np.sum((pred_lower.T * weights).T, axis=1)
-    w_pred_mean = np.sum((pred_mean.T * weights).T, axis=1)
-    w_pred_upper = np.sum((pred_upper.T * weights).T, axis=1)
-    prediction_df = pd.DataFrame({'predicted_lower': w_pred_lower,
-                                  'predicted_mean': w_pred_mean,
-                                  'predicted_upper': w_pred_upper},
-                                 index=models[0].prediction.index)
+    w_for_lower = np.sum((for_lower.T * weights).T, axis=1)
+    w_for_mean = np.sum((for_mean.T * weights).T, axis=1)
+    w_for_upper = np.sum((for_upper.T * weights).T, axis=1)
+    w_prediction_history = np.sum((pred_history.T * weights).T, axis=1)
+    forecast_df = pd.DataFrame({'forecasted_lower': w_for_lower,
+                                'forecasted_mean': w_for_mean,
+                                'forecasted_upper': w_for_upper},
+                               index=models[0].prediction.index)
+    prediction_df = pd.DataFrame({'predicted_history': w_prediction_history},
+                                 index=models[0].prediction_past.index)
     # prediction_df = pd.DataFrame(np.sum((predictions.T * weights).T, axis=1))
 
-    return round(prediction_df, 4), model_w
+    return round(forecast_df, 4), model_w, prediction_df
 
 
 # ------------------------------------------------------------------------------------------------
@@ -289,6 +295,7 @@ def train_val_test_split(data, f_period):
     train_df = data.iloc[:-f_period]
     test_df = data.iloc[-f_period:]
     return train_df, test_df
+
 
 # -------------------------------------------
 
@@ -403,6 +410,7 @@ def fit_ima_model(train_df, val_df, max_search, model_metric, grouping=None):
         refit_data = pd.concat([train_data, val_data], axis=0)
         last_fit = ARIMA(refit_data, order=(best_p, best_d, best_q))
         return last_fit.fit()
+
     hparams = set_hparams_arima(train=train_df, val=val_df, max_search=max_search)
     refit_model = last_fit_arima(train_data=train_df, val_data=val_df,
                                  best_p=0, best_d=hparams[0][0], best_q=hparams[0][1])
