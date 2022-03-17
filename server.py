@@ -10,7 +10,7 @@ def convert_df(df):
 
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
-st.set_page_config(layout="wide", page_title='Forecaster', page_icon="📈")
+st.set_page_config(layout="wide", page_title='Forecaster', page_icon="🤖")
 st.sidebar.title("Sidebar")
 
 # Input Form --------------------------------------------
@@ -63,7 +63,10 @@ with document_expander:
     document_expander.markdown(documentation_link, unsafe_allow_html=True)
 
 #  Main-Page --------------------------------------------
-st.title("Cashflow Forecasting")
+st.write(
+    '<img width=100 src="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/120/apple/325/robot_1f916.png" style="margin-left: 5px; filter: hue-rotate(230deg) brightness(1);">',
+    unsafe_allow_html=True)
+st.title("Forecaster")
 if data is not None:
     st.session_state.grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
     df_train, df_test = m.train_val_test_split(data=st.session_state.grouped_data, f_period=test_period)
