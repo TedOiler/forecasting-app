@@ -11,12 +11,11 @@ def convert_df(df):
 
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
-st.set_page_config(layout="wide")
-# st.set_page_config(page_title='Time Series Forecasting', page_icon="📈")
+st.set_page_config(layout="wide", page_title='Forecaster', page_icon="📈")
 st.sidebar.title("Sidebar")
 
 # Input Form --------------------------------------------
-st.sidebar.header("1. Input File")
+st.sidebar.header("1. Input")
 input_form = st.sidebar.form(key="input")
 input_expander = input_form.expander("File Upload")
 # Input Data Upload Form
@@ -24,28 +23,21 @@ with input_expander:
     uploaded_file = input_expander.file_uploader("Choose a file", type=['xlsx', 'csv'])
     if uploaded_file is not None:
         try:
-            df = pd.read_esxel(uploaded_file, header=[0])
+            df = pd.read_excel(uploaded_file, header=[0])
         except:
             df = pd.read_csv(uploaded_file, header=[0])
         try:
             data = m.clean_data(data=df)
             data['document_date'].dt.strftime("%Y-%m-%d")
+
         except:
             data = None
             input_expander.error(
                 "File Upload Unsuccessful")
     else:
         data = None
-col1, col2 = input_form.columns(2)
-submit_data_btn = col1.form_submit_button("Submit")
-# Visualize Input Data
-if submit_data_btn:
-    col2.success("Success")
 
-# Parameters Form --------------------------------------------
-st.sidebar.header("2. Parameters")
-parameter_form = st.sidebar.form(key="parameters")
-params_expander = parameter_form.expander("Set Model Parameters")
+params_expander = input_form.expander("Model Parameters")
 with params_expander:
     col1, col2 = params_expander.columns(2)
     grouping = col1.selectbox("Cohort", ["W-SUN", "W-MON", "D", "M"])
@@ -56,9 +48,10 @@ with params_expander:
     # log_bool = params_expander.checkbox("Log")
     log_bool = False
 
-col1, col2 = parameter_form.columns(2)
-submit_params_btn = col1.form_submit_button("Submit")
-if submit_params_btn:
+col1, col2 = input_form.columns(2)
+submit_data_btn = col1.form_submit_button("Submit")
+# Visualize Input Data
+if submit_data_btn:
     col2.success("Success")
 
 # Documentation --------------------------------------------
@@ -74,14 +67,14 @@ with document_expander:
 #  Main-Page --------------------------------------------
 st.title("Cashflow Forecasting")
 if data is not None:
-    grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
-    df_train, df_test = m.train_val_test_split(data=grouped_data, f_period=test_period)
+    st.session_state.grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
+    df_train, df_test = m.train_val_test_split(data=st.session_state.grouped_data, f_period=test_period)
 else:
     df_train = pd.DataFrame()
     df_test = pd.DataFrame()
-    grouped_data = pd.DataFrame([1])
-train_prc_length = df_train.shape[0] / grouped_data.shape[0]
-data_expander = st.expander(f"3. Train-Test: {round(train_prc_length * 100)}% - {round((1 - train_prc_length) * 100)}%")
+    st.session_state.grouped_data = pd.DataFrame([1])
+train_prc_length = df_train.shape[0] / st.session_state.grouped_data.shape[0]
+data_expander = st.expander(f"Train-Test: {round(train_prc_length * 100)}% - {round((1 - train_prc_length) * 100)}%")
 with data_expander:
     col1, col2, col3, col4 = data_expander.columns(4)
     col1.write(f"Train length: {df_train.shape[0]}")
@@ -99,19 +92,18 @@ with data_expander:
     col3.empty()
     col4.empty()
 
-
 models_form = st.form(key="models")
-model_expander = models_form.expander("4. Models")
+model_expander = models_form.expander("Models")
 with model_expander:
     col1, col2 = model_expander.columns(2)
     algo_1 = col1.selectbox("Model #1", ['MA', None], 0)
-    strength_1 = col1.slider("Model #1 Depth", 1, test_period, value=int(test_period/1.2), step=1)
+    strength_1 = col1.slider("Model #1 Depth", 1, test_period, value=int(test_period / 1.2), step=1)
     algo_2 = col2.selectbox("Model #2", ['AR', None], 0)
-    strength_2 = col2.slider("Model #2 Depth", 1, test_period, value=int(test_period/1.2), step=1)
+    strength_2 = col2.slider("Model #2 Depth", 1, test_period, value=int(test_period / 1.2), step=1)
     col1.markdown('---')
     col2.markdown('---')
     algo_3 = col1.selectbox("Model #3", ['ARIMA', None], 0)
-    strength_3 = col1.slider("Model #3 Depth", 1, test_period, value=int(test_period/2), step=1)
+    strength_3 = col1.slider("Model #3 Depth", 1, test_period, value=int(test_period / 2), step=1)
     algo_4 = col2.selectbox("Model #4", ['SARIMA', None], 0)
     strength_4 = col2.slider("Model #4 Depth", 1, 8, value=4, step=1)
     col1, col2, col3, col4 = models_form.columns(4)
@@ -156,7 +148,7 @@ with model_expander:
 
         col4.success("Success")
 
-residuals_expander = st.expander("5. Model Evaluation")
+residuals_expander = st.expander("Model Evaluation")
 if st.session_state.model_1 is not None:
     col1, col2 = residuals_expander.columns(2)
     col1.write(f"{algo_1} - Residuals")
@@ -170,7 +162,7 @@ if st.session_state.model_1 is not None:
 
 # -----------------------------------------------------------
 
-fitted_values_expander = st.expander("6. Visual")
+fitted_values_expander = st.expander("Visual")
 if st.session_state.model_1 is not None:
     col1, col2 = fitted_values_expander.columns(2)
     true = pd.concat([df_train, df_test], axis=0)
@@ -216,7 +208,7 @@ if st.session_state.model_1 is not None:
 # -----------------------------------------------------------
 
 pool_form = st.form(key="pool")
-pool_expander = pool_form.expander("7. Pool Predictions")
+pool_expander = pool_form.expander("Pool Predictions")
 col1, col2 = pool_expander.columns(2)
 selected_models = col1.multiselect("Select Models", ['MA', 'AR', 'ARIMA', 'SARIMA'])
 weight = col2.selectbox("Weight Metric", ['rmse', 'mae', 'aic', 'bic'])
@@ -246,7 +238,7 @@ if pool_btn:
 else:
     all_data = None
 
-export_expander = st.expander("8. Export Results")
+export_expander = st.expander("Export Results")
 if st.session_state.all_data is not None:
     export_expander.dataframe(st.session_state.all_data)
     export_expander.download_button(label='Export Results as CSV',

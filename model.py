@@ -287,7 +287,6 @@ def clean_data(data):
     data_frame.columns = data_frame.columns.str.replace(' ', '_')
     data_frame.columns = [x.lower() for x in data_frame.columns]
     data_frame['document_date'] = pd.to_datetime(data_frame['document_date'], format="%Y-%m-%d")
-
     return data_frame
 
 
