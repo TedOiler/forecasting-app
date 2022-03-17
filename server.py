@@ -41,9 +41,6 @@ submit_data_btn = col1.form_submit_button("Submit")
 # Visualize Input Data
 if submit_data_btn:
     col2.success("Success")
-input_data_expander = input_form.expander("Raw data preview")
-with input_data_expander:
-    input_data_expander.dataframe(data)
 
 # Parameters Form --------------------------------------------
 st.sidebar.header("2. Parameters")
@@ -76,10 +73,13 @@ with document_expander:
 
 #  Main-Page --------------------------------------------
 st.title("Cashflow Forecasting")
-# TODO
-grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
-# TODO
-df_train, df_test = m.train_val_test_split(data=grouped_data, f_period=test_period)
+if data is not None:
+    grouped_data = m.group_data(data=data, grouping=grouping, log_bool=log_bool).iloc[:-1]
+    df_train, df_test = m.train_val_test_split(data=grouped_data, f_period=test_period)
+else:
+    df_train = pd.DataFrame()
+    df_test = pd.DataFrame()
+    grouped_data = pd.DataFrame([1])
 train_prc_length = df_train.shape[0] / grouped_data.shape[0]
 data_expander = st.expander(f"3. Train-Test: {round(train_prc_length * 100)}% - {round((1 - train_prc_length) * 100)}%")
 with data_expander:
@@ -99,6 +99,7 @@ with data_expander:
     col3.empty()
     col4.empty()
 
+
 models_form = st.form(key="models")
 model_expander = models_form.expander("4. Models")
 with model_expander:
@@ -115,6 +116,19 @@ with model_expander:
     strength_4 = col2.slider("Model #4 Depth", 1, 8, value=4, step=1)
     col1, col2, col3, col4 = models_form.columns(4)
     train_models_btn = col1.form_submit_button("Train")
+
+    # State initialization to avoid errors down the stream
+    if 'model_1' not in st.session_state:
+        st.session_state.model_1 = m.Model(algorithm=algo_1, train_set=df_train, test_set=df_test)
+    if 'model_2' not in st.session_state:
+        st.session_state.model_2 = m.Model(algorithm=algo_2, train_set=df_train, test_set=df_test)
+    if 'model_3' not in st.session_state:
+        st.session_state.model_3 = m.Model(algorithm=algo_3, train_set=df_train, test_set=df_test)
+    if 'model_4' not in st.session_state:
+        st.session_state.model_4 = m.Model(algorithm=algo_4, train_set=df_train, test_set=df_test)
+    if 'all_data' not in st.session_state:
+        st.session_state.all_data = pd.DataFrame()
+
     if train_models_btn:
         st.session_state.model_1 = m.Model(algorithm=algo_1, train_set=df_train, test_set=df_test,
                                            grouping=grouping, depth=strength_1,
@@ -143,7 +157,6 @@ with model_expander:
         col4.success("Success")
 
 residuals_expander = st.expander("5. Model Evaluation")
-# TODO
 if st.session_state.model_1 is not None:
     col1, col2 = residuals_expander.columns(2)
     col1.write(f"{algo_1} - Residuals")
